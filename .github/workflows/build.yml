@@ -2,6 +2,7 @@ name: Build
 
 on:
   push:
+    branches: [main]      # 每次推送都构建（产物在 Artifacts）
     tags: ['v*']          # 推 tag 时构建 Release
   workflow_dispatch: {}   # 手动触发
 
