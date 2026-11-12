@@ -559,6 +559,22 @@ function safeDate(value) {
 // ---------- 托盘 ----------
 
 function trayIcon() {
+  // macOS 菜单栏必须用「模板图标」：纯黑图形+透明底，文件名以 Template 结尾，
+  // 系统会按菜单栏深浅色自动反色（浅色菜单栏显示黑、深色显示白）。
+  // 之前直接用彩色应用图标，在菜单栏里是一个突兀的绿色实心块，与系统图标风格不符。
+  if (process.platform === 'darwin') {
+    // Retina 下用 @2x，普通屏用 1x
+    const scale = (screen.getPrimaryDisplay().scaleFactor || 1) >= 2 ? '@2x' : ''
+    const iconPath = path.join(__dirname, 'assets', `tray-22${scale}.png`)
+    if (fs.existsSync(iconPath)) {
+      const img = nativeImage.createFromPath(iconPath)
+      img.setTemplateImage(true) // 运行时强制标记为模板，即使文件名没带 Template
+      return img
+    }
+    // 兜底：程序化画一个黑色闪电模板
+    return templateBoltImage(22)
+  }
+
   const iconPath = path.join(__dirname, 'assets', 'tray.png')
   if (fs.existsSync(iconPath)) return nativeImage.createFromPath(iconPath)
   // 兜底：用内联的 16x16 圆点，避免托盘空白
@@ -580,6 +596,56 @@ function trayIcon() {
   }
   return nativeImage.createFromBuffer(buffer, { width: size, height: size })
 }
+
+// 程序化生成单色闪电模板（macOS 兜底用，正常情况不会走到）
+function templateBoltImage(size) {
+  const SS = 8
+  const big = size * SS
+  const buf = Buffer.alloc(size * size * 4)
+  const scale = 1.18
+  const bolt = BOLT_SHAPE.map(([x, y]) => [(x - 0.5) * scale + 0.5, (y - 0.5) * scale + 0.5])
+
+  function inPoly(px, py, poly) {
+    let inside = false
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const [xi, yi] = poly[i]
+      const [xj, yj] = poly[j]
+      if ((yi > py) !== (yj > py) && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inside = !inside
+    }
+    return inside
+  }
+
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      let hit = 0
+      for (let sy = 0; sy < SS; sy++) {
+        for (let sx = 0; sx < SS; sx++) {
+          const u = (x * SS + sx + 0.5) / big
+          const v = (y * SS + sy + 0.5) / big
+          if (inPoly(u, v, bolt)) hit++
+        }
+      }
+      const i = (y * size + x) * 4
+      // BGRA：黑色
+      buf[i] = 0; buf[i + 1] = 0; buf[i + 2] = 0
+      buf[i + 3] = Math.round((hit / (SS * SS)) * 255)
+    }
+  }
+  const img = nativeImage.createFromBuffer(buf, { width: size, height: size })
+  img.setTemplateImage(true)
+  return img
+}
+
+// 闪电形状（归一化坐标，与 build-icon.js 保持一致）
+const BOLT_SHAPE = [
+  [0.575, 0.10],
+  [0.315, 0.545],
+  [0.475, 0.545],
+  [0.425, 0.90],
+  [0.695, 0.435],
+  [0.525, 0.435],
+  [0.615, 0.10]
+]
 
 function buildTrayMenu() {
   const items = [

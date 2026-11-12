@@ -87,12 +87,20 @@ function pointInPolygon(px, py, poly) {
 // 品牌绿（与界面 --accent 同色系，稍深以便白色闪电对比清楚）
 const BRAND = [0x2f, 0x9e, 0x6b]
 const WHITE = [0xff, 0xff, 0xff]
+// macOS 菜单栏模板图标用纯黑（系统按菜单栏深浅自动反色）
+const BLACK = [0x00, 0x00, 0x00]
 
 // 超采样绘制，得到平滑边缘
-function renderIcon(size) {
+// mode: 'color' 彩色圆角方块底（应用图标/Windows 托盘）
+//       'template' 纯黑描边闪电、无底色（macOS 菜单栏模板图标）
+function renderIcon(size, mode = 'color') {
   const SS = size >= 64 ? 4 : 8 // 小尺寸多采样，保证轮廓不糊
   const big = size * SS
   const buf = Buffer.alloc(size * size * 4)
+
+  // 模板模式的闪电略微放大，因为无底色时视觉重量更小
+  const scale = mode === 'template' ? 1.18 : 1
+  const bolt = BOLT.map(([x, y]) => [(x - 0.5) * scale + 0.5, (y - 0.5) * scale + 0.5])
 
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
@@ -103,17 +111,24 @@ function renderIcon(size) {
           const u = (x * SS + sx + 0.5) / big
           const v = (y * SS + sy + 0.5) / big
 
-          // 圆角方形底（比纯圆更像 App 图标，也更适合小尺寸）
-          const inset = 0.04
-          const radius = 0.22
-          const inCorner = cornerDistance(u, v, inset, radius) <= 0
-          if (!inCorner) continue
-
-          sa += 1
-          if (pointInPolygon(u, v, BOLT)) {
-            sr += WHITE[0]; sg += WHITE[1]; sb += WHITE[2]
+          if (mode === 'template') {
+            // 无底色，只有黑色闪电轮廓
+            if (!pointInPolygon(u, v, bolt)) continue
+            sa += 1
+            sr += BLACK[0]; sg += BLACK[1]; sb += BLACK[2]
           } else {
-            sr += BRAND[0]; sg += BRAND[1]; sb += BRAND[2]
+            // 圆角方形底 + 白色闪电
+            const inset = 0.04
+            const radius = 0.22
+            const inCorner = cornerDistance(u, v, inset, radius) <= 0
+            if (!inCorner) continue
+
+            sa += 1
+            if (pointInPolygon(u, v, BOLT)) {
+              sr += WHITE[0]; sg += WHITE[1]; sb += WHITE[2]
+            } else {
+              sr += BRAND[0]; sg += BRAND[1]; sb += BRAND[2]
+            }
           }
         }
       }
@@ -214,7 +229,7 @@ const images = SIZES.map((size) => {
   const png = encodePNG(rgba, size)
   // 单独存一份 256 的 PNG，供 electron-builder / 文档使用
   if (size === 256) fs.writeFileSync(path.join(assetsDir, 'icon.png'), png)
-  // 托盘用小尺寸
+  // Windows 托盘用彩色小尺寸
   if (size === 32) fs.writeFileSync(path.join(assetsDir, 'tray.png'), png)
   return { size, png }
 })
@@ -227,8 +242,27 @@ const pngBySize = new Map(SIZES.map((size) => [size, images.find((i) => i.size =
 const icns = buildICNS(pngBySize)
 fs.writeFileSync(path.join(assetsDir, 'icon.icns'), icns)
 
+// macOS 菜单栏模板图标：纯黑描边、无底色，命名以 Template 结尾系统才会自动反色。
+// 尺寸按菜单栏惯例取 16/18(=@2x)/22/32/44(=@2x)，超额尺寸系统也能缩放。
+const TEMPLATE_SIZES = [16, 22, 32, 44]
+const templateImages = TEMPLATE_SIZES.map((size) => {
+  const rgba = renderIcon(size, 'template')
+  const png = encodePNG(rgba, size)
+  const file = path.join(assetsDir, `tray-${size}.png`)
+  fs.writeFileSync(file, png)
+  return { size, png }
+})
+// 双倍图供 Retina 使用（18pt → 36px / 22pt → 44px 已含，再补 16/22 的 @2x）
+const template2x = [16, 22].map((pt) => {
+  const size = pt * 2
+  const png = encodePNG(renderIcon(size, 'template'), size)
+  fs.writeFileSync(path.join(assetsDir, `tray-${pt}@2x.png`), png)
+  return { pt, size }
+})
+
 console.log('生成完成:')
 console.log(`  assets/icon.ico   (${SIZES.join('/')} 共 ${SIZES.length} 种尺寸, ${(ico.length / 1024).toFixed(1)} KB)`)
 console.log(`  assets/icon.icns  (macOS, ${(icns.length / 1024).toFixed(1)} KB)`)
 console.log(`  assets/icon.png   (256x256)`)
-console.log(`  assets/tray.png   (32x32)`)
+console.log(`  assets/tray.png   (32x32, Windows 托盘彩色)`)
+console.log(`  assets/tray-{16,22,32,44}.png + 16/22 的 @2x  (macOS 菜单栏模板)`)
