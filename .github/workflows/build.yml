@@ -59,3 +59,13 @@ jobs:
             dist/*.exe
             dist/*.zip
           if-no-files-found: error
+
+      # 仅在推 tag（v*）时：把产物挂到 GitHub Release，同事可直接下载
+      - name: Attach to Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.exe
+            dist/*.zip
+          generate_release_notes: true
