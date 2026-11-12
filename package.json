@@ -1,0 +1,71 @@
+{
+  "name": "token-plan-widget",
+  "productName": "Token Plan",
+  "version": "1.0.1",
+  "private": true,
+  "description": "腾讯云 Token Plan 桌面悬浮挂件",
+  "author": "daydaydream69",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "icon": "node build-icon.js",
+    "dist:portable": "electron-builder --win portable",
+    "dist:mac": "electron-builder --mac dir",
+    "dist:dir": "electron-builder --win dir",
+    "dist:installer": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "45.3.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.tokenplan.widget",
+    "productName": "Token Plan",
+    "copyright": "Token Plan Widget",
+    "directories": {
+      "output": "dist",
+      "buildResources": "assets"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "assets/icon.ico",
+      "assets/icon.png",
+      "assets/tray.png",
+      "使用说明.txt",
+      "!**/*.map",
+      "!**/test-*.js",
+      "!**/verify-*.js",
+      "!**/debug-*.js"
+    ],
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        { "target": "portable", "arch": ["x64"] }
+      ]
+    },
+    "mac": {
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.utilities",
+      "target": [
+        { "target": "dir", "arch": ["x64", "arm64"] }
+      ],
+      "identity": null,
+      "gatekeeperAssess": false
+    },
+    "portable": {
+      "artifactName": "TokenPlan-${version}-portable.exe",
+      "requestExecutionLevel": "user"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Token Plan 用量"
+    },
+    "compression": "maximum"
+  }
+}

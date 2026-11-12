@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'self'; img-src 'self' data:;" />
+  <title>Token Plan</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="root" data-mode="pill" data-expanded="false" data-state="loading">
+
+    <!-- ===== 胶囊 ===== -->
+    <div class="surface surface-pill" data-drag>
+      <span class="bolt" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5Z" fill="currentColor"/></svg>
+      </span>
+      <span class="pill-text"><span class="pill-pct">—</span></span>
+      <span class="dot" aria-hidden="true"></span>
+    </div>
+
+    <!-- ===== 圆环 ===== -->
+    <div class="surface surface-circle" data-drag>
+      <svg class="ring" viewBox="0 0 60 60">
+        <circle class="ring-track" cx="30" cy="30" r="26" />
+        <circle class="ring-fill" cx="30" cy="30" r="26" />
+      </svg>
+      <span class="circle-pct">—</span>
+    </div>
+
+    <!-- ===== 迷你条 ===== -->
+    <div class="surface surface-bar" data-drag>
+      <div class="bar-head">
+        <span class="bolt small" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5Z" fill="currentColor"/></svg>
+        </span>
+        <span class="bar-title">Token Plan</span>
+        <span class="bar-pct">—</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill"></div></div>
+      <div class="bar-foot">
+        <span class="bar-remain">—</span>
+        <span class="bar-unit"></span>
+      </div>
+    </div>
+
+    <!-- ===== 展开面板 ===== -->
+    <div class="panel" id="panel">
+      <header class="panel-head">
+        <div class="head-left">
+          <span class="bolt" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12l1-8.5Z" fill="currentColor"/></svg>
+          </span>
+          <div class="head-titles">
+            <div class="head-title">Token Plan</div>
+            <div class="head-sub" id="head-sub">—</div>
+          </div>
+        </div>
+        <div class="head-actions">
+          <button class="icon-btn" id="btn-refresh" title="刷新">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M20 11a8 8 0 1 0-.7 4.3M20 5v6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="icon-btn" id="btn-collapse" title="收起">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- 标签页切换 -->
+      <div class="tabs" role="tablist">
+        <button class="tab" data-tab="overview" role="tab" aria-selected="true">套餐概览</button>
+        <button class="tab" data-tab="models" role="tab" aria-selected="false">模型用量</button>
+      </div>
+
+      <div class="panel-body" id="panel-body">
+        <!-- ===== 套餐概览 ===== -->
+        <div class="tab-pane" data-pane="overview">
+          <div class="hero">
+            <div class="hero-label">剩余</div>
+            <div class="hero-value"><span id="remain">—</span><span class="hero-unit" id="unit"></span></div>
+            <div class="hero-note" id="hero-note"></div>
+          </div>
+
+          <div class="bar-track big"><div class="bar-fill" id="panel-fill"></div></div>
+          <div class="bar-meta">
+            <span id="used-line">—</span>
+            <span id="quota-line">—</span>
+          </div>
+
+          <div class="divider"></div>
+
+          <dl class="rows">
+            <div class="row"><dt>额度状态</dt><dd id="status">—</dd></div>
+            <div class="row"><dt>套餐周期</dt><dd id="cycle">—</dd></div>
+            <div class="row"><dt>用量排名</dt><dd id="ranking">—</dd></div>
+            <div class="row"><dt>同步时间</dt><dd id="updated">—</dd></div>
+          </dl>
+
+          <div class="stale" id="stale" hidden>数据可能不是最新，最近一次同步未成功。</div>
+          <div class="error" id="error" hidden></div>
+        </div>
+
+        <!-- ===== 模型用量 ===== -->
+        <div class="tab-pane" data-pane="models" hidden>
+          <div class="models-toolbar">
+            <label class="select-wrap">
+              <span>时间范围</span>
+              <select id="model-range">
+                <option value="today">今天</option>
+                <option value="7d">近 7 天</option>
+                <option value="30d">近 30 天</option>
+              </select>
+            </label>
+            <button class="icon-btn" id="btn-model-refresh" title="刷新模型用量">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M20 11a8 8 0 1 0-.7 4.3M20 5v6h-6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+
+          <div class="model-status" id="model-status">加载中…</div>
+
+          <table class="models-table" id="models-table" hidden>
+            <thead>
+              <tr><th>模型</th><th>估算积分</th></tr>
+            </thead>
+            <tbody id="models-body"></tbody>
+          </table>
+
+          <div class="model-foot" id="model-foot" hidden></div>
+          <div class="error" id="model-error" hidden></div>
+        </div>
+      </div>
+
+      <footer class="panel-foot">
+        <div class="modes" role="group" aria-label="显示模式">
+          <button data-mode-btn="pill">胶囊</button>
+          <button data-mode-btn="circle">圆环</button>
+          <button data-mode-btn="bar">迷你条</button>
+        </div>
+        <button class="link-btn" id="btn-key">更换 Key</button>
+      </footer>
+
+      <!-- Key 设置 -->
+      <div class="settings" id="settings" hidden>
+        <div class="settings-title">设置 API Key</div>
+        <p class="settings-hint">以 sk- 开头的 Token Plan Key。仅保存在本机，用于直接查询用量。</p>
+        <div class="input-wrap">
+          <input id="key-input" type="password" spellcheck="false" autocomplete="off" placeholder="sk-..." />
+          <button class="ghost-btn" id="btn-reveal" type="button">显示</button>
+        </div>
+        <div class="error" id="key-error" hidden></div>
+        <div class="settings-actions">
+          <button class="primary-btn" id="btn-save">保存并查询</button>
+          <button class="ghost-btn" id="btn-cancel">取消</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
